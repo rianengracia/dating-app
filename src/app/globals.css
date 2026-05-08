@@ -1,26 +1,128 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* TrueMatch design tokens — see DESIGN-SYSTEM.md */
+:root,
+[data-theme="dark"] {
+  --tm-bg: #0f1923;
+  --tm-surface: #1f2731;
+  --tm-surface-2: #16202b;
+  --tm-line: #2b3a47;
+  --tm-fg: #ece8e1;
+  --tm-fg-muted: #8b9ba8;
+  --tm-fg-dim: #5a6b78;
+  --tm-accent: #ff4655;
+  --tm-accent-hover: #ff5864;
+  --tm-accent-press: #bd3944;
+  --tm-cyan: #5ce1e6;
+  --tm-warn: #f2c94c;
+  --tm-success: #a1e887;
+}
+
+[data-theme="light"] {
+  --tm-bg: #ece8e1;
+  --tm-surface: #ffffff;
+  --tm-surface-2: #f5f1ea;
+  --tm-line: #d7d1c4;
+  --tm-fg: #0f1923;
+  --tm-fg-muted: #4a5764;
+  --tm-fg-dim: #7c8893;
+  --tm-accent: #ff4655;
+  --tm-accent-hover: #ff5864;
+  --tm-accent-press: #bd3944;
+  --tm-cyan: #1fa8ae;
+  --tm-warn: #b58a14;
+  --tm-success: #4a9b3a;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-bg: var(--tm-bg);
+  --color-surface: var(--tm-surface);
+  --color-surface-2: var(--tm-surface-2);
+  --color-line: var(--tm-line);
+  --color-fg: var(--tm-fg);
+  --color-fg-muted: var(--tm-fg-muted);
+  --color-fg-dim: var(--tm-fg-dim);
+  --color-accent: var(--tm-accent);
+  --color-accent-hover: var(--tm-accent-hover);
+  --color-accent-press: var(--tm-accent-press);
+  --color-cyan: var(--tm-cyan);
+  --color-warn: var(--tm-warn);
+  --color-success: var(--tm-success);
+
+  --font-display: var(--font-anton), "Bebas Neue", "Tungsten", system-ui, sans-serif;
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  background: var(--tm-bg);
+  color: var(--tm-fg);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--tm-bg);
+  color: var(--tm-fg);
+  font-family: var(--font-sans);
+}
+
+::selection {
+  background: var(--tm-accent);
+  color: #0f1923;
+}
+
+/* Angular chamfers — Valorant motif */
+.tm-clip-tl {
+  clip-path: polygon(12px 0, 100% 0, 100% 100%, 0 100%, 0 12px);
+}
+.tm-clip-tr {
+  clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 0 100%);
+}
+.tm-clip-br {
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%);
+}
+.tm-clip-bl {
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 12px 100%, 0 calc(100% - 12px));
+}
+
+.tm-skew {
+  transform: skewX(-20deg);
+}
+
+/* Display heading — paired with thin red rule */
+.tm-display {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  line-height: 1;
+}
+
+.tm-mono {
+  font-family: var(--font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.tm-rule {
+  display: inline-block;
+  width: 48px;
+  height: 1px;
+  background: var(--tm-accent);
+  vertical-align: middle;
+}
+
+.tm-grid-bg {
+  background-image:
+    linear-gradient(transparent calc(100% - 1px), color-mix(in srgb, var(--tm-line) 60%, transparent) 100%),
+    linear-gradient(90deg, transparent calc(100% - 1px), color-mix(in srgb, var(--tm-line) 60%, transparent) 100%);
+  background-size: 48px 48px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.001ms !important;
+    animation-duration: 0.001ms !important;
+  }
 }

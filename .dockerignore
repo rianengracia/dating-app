@@ -1,0 +1,29 @@
+node_modules
+.next
+.git
+.gitignore
+
+# Local env — secrets go in via `fly secrets set`
+.env
+.env.local
+.env.*.local
+.env.development
+.env.production
+
+# Local uploads — the Fly volume provides fresh storage at runtime
+public/uploads/*
+!public/uploads/.gitkeep
+
+# Editor / OS
+.vscode
+.idea
+.DS_Store
+Thumbs.db
+
+# Logs / coverage
+*.log
+npm-debug.log*
+coverage
+
+# Fly artifacts
+.fly
