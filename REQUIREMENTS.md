@@ -11,21 +11,51 @@ A competitive, tactical-themed dating web app. Visual language is inspired by **
 | Framework | Next.js 16 (App Router, TypeScript, `src/app/`) |
 | Frontend | React 19 + Tailwind CSS 4 |
 | Backend | Next.js Route Handlers (`app/api/**/route.ts`) — same project, server runtime |
-| Database | PostgreSQL |
+| Database | Neon Postgres (pooled `DATABASE_URL` for runtime, `DIRECT_URL` for migrations) |
 | ORM | Prisma |
 | Auth | Email + password, bcrypt password hashing, JWT session in an httpOnly cookie |
 | Validation | Zod (shared between server and client) |
-| Realtime | Socket.IO (custom Node server alongside Next, used only for messaging) |
-| Image storage | Local `public/uploads/` for now; pluggable for S3/Cloudinary later |
+| Realtime | Pusher Channels (presence channel per match: `presence-match-<matchId>`) |
+| Image storage | Vercel Blob (public access, `uploads/` prefix) |
+| Tests | Vitest + Testing Library + MSW (`tests/unit`, `tests/integration`) |
 | Lint | ESLint (`eslint-config-next`) |
+| CI/CD | GitLab CI (`.gitlab-ci.yml`) and GitHub Actions (`.github/workflows/ci.yml`), both deploying to Vercel from `main` |
+| Git hooks | Husky pre-push runs `npm run lint` |
 | Package manager | npm |
 
 ### Environment variables
 
+See `.env.example` for the canonical list. Required:
+
 ```
-DATABASE_URL=postgresql://USER:PASSWORD@HOST:5432/truematch
+# Neon Postgres
+DATABASE_URL=postgresql://USER:PASSWORD@HOST-pooler.neon.tech/truematch?sslmode=require
+DIRECT_URL=postgresql://USER:PASSWORD@HOST.neon.tech/truematch?sslmode=require
+
+# Session signing
 JWT_SECRET=<32+ char random string>
+
+# Public app URL (used for absolute redirects, push payloads, etc.)
 NEXT_PUBLIC_APP_URL=http://localhost:3000
+
+# Pusher Channels (server + client copies)
+PUSHER_APP_ID=
+PUSHER_KEY=
+PUSHER_SECRET=
+PUSHER_CLUSTER=
+NEXT_PUBLIC_PUSHER_KEY=
+NEXT_PUBLIC_PUSHER_CLUSTER=
+
+# Vercel Blob (auto-injected on Vercel; paste locally for dev)
+BLOB_READ_WRITE_TOKEN=
+```
+
+Optional (push notifications stay disabled without them):
+
+```
+VAPID_PUBLIC_KEY=
+VAPID_PRIVATE_KEY=
+VAPID_SUBJECT=mailto:admin@truematch.local
 ```
 
 ---
@@ -112,7 +142,7 @@ Form fields:
 - **Display name** — required, 2–32 chars.
 - **Age** — required integer ≥ 18 (legal floor).
 - **Bio** — required, 1–280 chars, plain text.
-- **Profile picture** — required, JPEG/PNG/WebP, ≤ 5 MB, stored under `public/uploads/`.
+- **Profile picture** — required, JPEG/PNG/WebP, ≤ 5 MB, uploaded to Vercel Blob under the `uploads/` prefix. The persisted `photoUrl` is the returned `*.public.blob.vercel-storage.com` URL.
 
 Endpoint: `POST /api/auth/register` (multipart/form-data)
 - Validates input via zod.
@@ -155,11 +185,11 @@ Sign-out: `POST /api/auth/logout` clears the cookie.
 
 ### 4.6 Messaging (`/match/[matchId]`)
 
-- Realtime via Socket.IO. Channel scoped to a `matchId`.
-- Authentication: handshake validates the JWT cookie; only the two users in the match may join the room.
+- Realtime via **Pusher Channels**, using a presence channel named `presence-match-<matchId>`.
+- Authentication: `POST /api/pusher/auth` authorises subscription. It validates the JWT cookie and confirms the requester is one of the two users in that match before signing the channel auth payload.
 - Operations:
-  - `message:send { matchId, body }` — server validates body (1–2000 chars), persists, then broadcasts `message:new` to the room.
-  - History fetched on join via `GET /api/matches/:id/messages?cursor=`.
+  - `POST /api/matches/:id/messages { body }` — server validates body (1–2000 chars), persists the `Message`, then triggers a `message:new` event on the match's presence channel.
+  - History fetched via `GET /api/matches/:id/messages?cursor=`.
 - Message ordering: server timestamp.
 - No typing indicators / read receipts in this iteration (out of scope).
 
@@ -196,6 +226,9 @@ Sign-out: `POST /api/auth/logout` clears the cookie.
 - **Responsive**: mobile-first; primary breakpoints at `sm` (640), `md` (768), `lg` (1024).
 - **Security**: passwords hashed with bcrypt, sessions in httpOnly + SameSite=Lax cookies, CSRF protection on state-changing routes via SameSite + origin check, file upload type/size validation server-side.
 - **Performance**: landing page LCP < 2.5 s on a 4G profile; route-level code splitting via App Router defaults.
+- **Quality gates**:
+  - Husky pre-push hook runs `npm run lint`; pushes fail on lint errors.
+  - GitLab CI (`.gitlab-ci.yml`) and GitHub Actions (`.github/workflows/ci.yml`) both run lint on every branch/MR/PR, `npm run test:run` on MRs/PRs and on `main`, then build and deploy to Vercel from `main`. Both pipelines require `VERCEL_TOKEN`, `VERCEL_ORG_ID`, and `VERCEL_PROJECT_ID` as CI variables / repository secrets.
 
 ---
 

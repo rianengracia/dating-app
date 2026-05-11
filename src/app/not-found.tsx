@@ -1,6 +1,7 @@
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { Button } from "@/components/ui/Button";
+import Link from "next/link";
 
 export const metadata = {
   title: "TrueMatch — 404 // No signal",
@@ -45,12 +46,12 @@ export default function NotFound() {
             <p className="tm-mono text-[10px] text-fg-dim mb-3">QUICK NAV</p>
             <ul className="grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-2 text-sm">
               <li>
-                <a
+                <Link
                   href="/"
                   className="tm-mono text-xs text-fg-muted hover:text-accent transition-colors"
                 >
                   / HOME
-                </a>
+                </Link>
               </li>
               <li>
                 <a

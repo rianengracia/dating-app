@@ -13,16 +13,23 @@ This repository is a Next.js dating web app. See `REQUIREMENTS.md` for the autho
 - Next.js 16, App Router, TypeScript, `src/app/` layout
 - Tailwind CSS 4 (`@tailwindcss/postcss`)
 - React 19
+- Prisma + Neon Postgres (pooled `DATABASE_URL` for runtime, `DIRECT_URL` for migrations)
+- Pusher Channels for realtime messaging (presence channels per match)
+- Vercel Blob for profile photo storage
+- Vitest + Testing Library + MSW for unit/integration tests
 - ESLint via `eslint-config-next`
 - npm as the package manager
 
 ## Commands
 
-- `npm run dev` — start the dev server (runs `server.js`: Next + Socket.IO)
-- `npm run dev:next` — Next-only dev server, **no realtime** (use only for UI work that doesn't touch sockets)
+- `npm run dev` — start the Next.js dev server (`next dev`). Realtime is handled by Pusher Channels, so no custom Node server is needed.
 - `npm run build` — production build
-- `npm run start` — production server (Next + Socket.IO)
+- `npm run start` — production server (`next start`)
 - `npm run lint` — run ESLint
+- `npm run test` — vitest in watch mode
+- `npm run test:run` — vitest single-run (used by CI and the `main`-branch pipeline)
+- `npm run test:coverage` — vitest with v8 coverage
+- `npm run test:ui` — vitest UI
 - `npm run db:migrate` — `prisma migrate dev`
 - `npm run db:seed` — populate test users / matches / messages
 - `npm run db:reset` — wipe + re-migrate (destructive)
@@ -43,6 +50,12 @@ This repository is a Next.js dating web app. See `REQUIREMENTS.md` for the autho
 - When requirements change, update `REQUIREMENTS.md` first; let the code follow.
 - Validate UI work in the browser via `npm run dev` before declaring it done. Type checks and lint don't prove a feature works.
 - Keep changes minimal and reversible. No speculative abstractions, no backwards-compat shims for code that has no history yet.
+
+## Quality gates
+
+- **Husky pre-push hook** (`.husky/pre-push`) runs `npm run lint` before any `git push`. The hook is installed automatically by the `prepare` script on `npm install`.
+- **GitLab CI** (`.gitlab-ci.yml`) — current pipeline. Lint on every branch/MR, `npm run test:run` on MRs and on `main`, build + Vercel deploy on `main`.
+- **GitHub Actions** (`.github/workflows/ci.yml`) — mirror of the GitLab pipeline, in place for the upcoming migration to GitHub. Same stages, same Vercel deploy target. Both pipelines need the secrets `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`.
 
 ## Feature scope
 

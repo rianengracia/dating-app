@@ -5,7 +5,6 @@ import { server } from "./mocks/server";
 
 // jsdom doesn't implement scrollTo on elements — the chat list relies on it.
 if (typeof window !== "undefined" && !window.HTMLElement.prototype.scrollTo) {
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
   window.HTMLElement.prototype.scrollTo = function () {};
 }
 
