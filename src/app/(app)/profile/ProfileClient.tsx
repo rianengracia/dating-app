@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Field, Input, Textarea } from "@/components/ui/Field";
 import { ensurePushSubscription, getPushPermissionState } from "@/lib/push-client";
+import { useProfile } from "@/hooks/useProfile";
 
 type Initial = {
   email: string;
@@ -16,11 +17,12 @@ type Initial = {
 
 export function ProfileClient({ initial }: { initial: Initial }) {
   const router = useRouter();
+  const { update, changePhoto, busy, message, clearMessage } = useProfile();
   const [displayName, setDisplayName] = useState(initial.displayName);
   const [bio, setBio] = useState(initial.bio);
   const [photoUrl, setPhotoUrl] = useState(initial.photoUrl);
-  const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
+  const [pushBusy, setPushBusy] = useState(false);
+  const [pushMessage, setPushMessage] = useState<string | null>(null);
   const [pushState, setPushState] = useState<"unknown" | "default" | "granted" | "denied" | "unsupported">("unknown");
 
   useEffect(() => {
@@ -29,61 +31,30 @@ export function ProfileClient({ initial }: { initial: Initial }) {
 
   async function saveDetails(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setBusy(true);
-    setMessage(null);
-    try {
-      const res = await fetch("/api/profile", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ displayName, bio }),
-      });
-      const data = await res.json();
-      if (!res.ok || !data.ok) {
-        setMessage({ kind: "err", text: data.error ?? "Update failed." });
-      } else {
-        setMessage({ kind: "ok", text: "Profile updated." });
-        router.refresh();
-      }
-    } finally {
-      setBusy(false);
-    }
+    const ok = await update({ displayName, bio });
+    if (ok) router.refresh();
   }
 
-  async function savePhoto(e: React.ChangeEvent<HTMLInputElement>) {
+  async function onPickPhoto(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.currentTarget.files?.[0];
     if (!file) return;
-    setBusy(true);
-    setMessage(null);
-    const fd = new FormData();
-    fd.append("photo", file);
-    try {
-      const res = await fetch("/api/profile/photo", { method: "POST", body: fd });
-      const data = await res.json();
-      if (!res.ok || !data.ok) {
-        setMessage({ kind: "err", text: data.error ?? "Photo update failed." });
-      } else {
-        setPhotoUrl(data.photoUrl);
-        setMessage({ kind: "ok", text: "Photo updated." });
-        router.refresh();
-      }
-    } finally {
-      setBusy(false);
+    const url = await changePhoto(file);
+    if (url) {
+      setPhotoUrl(url);
+      router.refresh();
     }
   }
 
   async function enablePush() {
-    setBusy(true);
-    setMessage(null);
+    setPushBusy(true);
+    setPushMessage(null);
+    clearMessage();
     try {
       const result = await ensurePushSubscription();
       setPushState(getPushPermissionState());
-      setMessage(
-        result.ok
-          ? { kind: "ok", text: "Push notifications enabled." }
-          : { kind: "err", text: result.error }
-      );
+      setPushMessage(result.ok ? "Push notifications enabled." : result.error);
     } finally {
-      setBusy(false);
+      setPushBusy(false);
     }
   }
 
@@ -125,16 +96,17 @@ export function ProfileClient({ initial }: { initial: Initial }) {
           type="file"
           accept="image/jpeg,image/png,image/webp"
           className="sr-only"
-          onChange={savePhoto}
+          onChange={onPickPhoto}
           disabled={busy}
         />
 
         <div className="bg-surface border border-line tm-clip-br p-4 space-y-3">
           <div className="tm-mono text-[10px] text-fg-dim">PUSH NOTIFICATIONS</div>
           <PushStatusRow state={pushState} />
+          {pushMessage && <div className="tm-mono text-[11px] text-fg-muted">▸ {pushMessage}</div>}
           {pushState !== "granted" && pushState !== "unsupported" && (
-            <Button type="button" variant="secondary" size="sm" onClick={enablePush}>
-              ENABLE PUSH
+            <Button type="button" variant="secondary" size="sm" onClick={enablePush} disabled={pushBusy}>
+              {pushBusy ? "ENABLING..." : "ENABLE PUSH"}
             </Button>
           )}
         </div>

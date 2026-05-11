@@ -1,15 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/Button";
-
-type MatchSummary = {
-  matchId: string;
-  partner: { id: string; displayName: string; photoUrl: string; age: number; bio: string };
-  lastMessage: { body: string; senderId: string; createdAt: string } | null;
-  createdAt: string;
-};
+import { useMatches } from "@/hooks/useMatches";
 
 function formatRelative(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
@@ -23,39 +17,14 @@ function formatRelative(iso: string): string {
 }
 
 export function MatchesClient() {
-  const [matches, setMatches] = useState<MatchSummary[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const { matches, loading, error, unmatch } = useMatches();
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const [working, setWorking] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    setError(null);
-    try {
-      const res = await fetch("/api/matches");
-      const data = await res.json();
-      if (!res.ok || !data.ok) {
-        setError(data.error ?? "Could not load matches.");
-        setMatches([]);
-      } else {
-        setMatches(data.matches as MatchSummary[]);
-      }
-    } catch {
-      setError("Network error.");
-      setMatches([]);
-    }
-  }, []);
-
-  useEffect(() => {
-    load();
-  }, [load]);
-
-  async function unmatch(id: string) {
+  async function onUnmatch(id: string) {
     setWorking(id);
     try {
-      const res = await fetch(`/api/matches/${id}`, { method: "DELETE" });
-      if (res.ok) {
-        setMatches((prev) => (prev ?? []).filter((m) => m.matchId !== id));
-      }
+      await unmatch(id);
     } finally {
       setWorking(null);
       setConfirmId(null);
@@ -78,7 +47,7 @@ export function MatchesClient() {
         </div>
       )}
 
-      {matches === null ? (
+      {loading ? (
         <p className="tm-mono text-xs text-fg-dim">▸ LOADING ROSTER...</p>
       ) : matches.length === 0 ? (
         <div className="bg-surface border border-line tm-clip-br p-8 text-center space-y-4">
@@ -174,7 +143,7 @@ export function MatchesClient() {
                 type="button"
                 variant="primary"
                 size="md"
-                onClick={() => unmatch(confirmId)}
+                onClick={() => onUnmatch(confirmId)}
                 disabled={working === confirmId}
               >
                 {working === confirmId ? "REMOVING..." : "UNMATCH"}
