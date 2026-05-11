@@ -81,7 +81,7 @@ function Hero({ authed }: { authed: boolean }) {
 function HeroPanel() {
   return (
     <div className="relative">
-      <div className="absolute -top-1 left-0 right-0 h-[2px] bg-gradient-to-r from-accent to-transparent" />
+      <div className="absolute -top-1 left-0 right-0 h-0.5 bg-linear-to-r from-accent to-transparent" />
       <div className="bg-surface border border-line tm-clip-br p-6 space-y-5">
         <div className="flex items-center justify-between">
           <span className="tm-mono text-[10px] text-fg-dim">AGENT // DOSSIER</span>
@@ -97,8 +97,8 @@ function HeroPanel() {
 
         <div className="border-t border-line pt-4 space-y-3">
           <p className="text-sm text-fg-muted leading-relaxed">
-            "Looking for a partner who pushes site without checking the minimap.
-            Coffee after the round."
+            &quot;Looking for a partner who pushes site without checking the minimap.
+            Coffee after the round.&quot;
           </p>
         </div>
 
@@ -161,8 +161,8 @@ function About() {
           </h2>
           <p className="md:col-span-6 text-base text-fg-muted leading-relaxed">
             Most dating apps reward indecision. TrueMatch rewards intent. Your profile is
-            either ready to queue or it isn't. Your filters are explicit. Your matches are
-            mutual or they don't exist. Everything else is noise.
+            either ready to queue or it isn&apos;t. Your filters are explicit. Your matches are
+            mutual or they don&apos;t exist. Everything else is noise.
           </p>
         </div>
 

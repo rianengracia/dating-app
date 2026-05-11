@@ -24,7 +24,9 @@ export function useMatches() {
   }, []);
 
   useEffect(() => {
-    void load();
+    (async () => {
+      await load();
+    })();
   }, [load]);
 
   const unmatch = useCallback(async (id: string): Promise<boolean> => {

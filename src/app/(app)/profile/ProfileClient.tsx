@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Field, Input, Textarea } from "@/components/ui/Field";
@@ -23,11 +23,9 @@ export function ProfileClient({ initial }: { initial: Initial }) {
   const [photoUrl, setPhotoUrl] = useState(initial.photoUrl);
   const [pushBusy, setPushBusy] = useState(false);
   const [pushMessage, setPushMessage] = useState<string | null>(null);
-  const [pushState, setPushState] = useState<"unknown" | "default" | "granted" | "denied" | "unsupported">("unknown");
-
-  useEffect(() => {
-    setPushState(getPushPermissionState());
-  }, []);
+  const [pushState, setPushState] = useState<
+    "unknown" | "default" | "granted" | "denied" | "unsupported"
+  >(() => getPushPermissionState());
 
   async function saveDetails(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -62,12 +60,12 @@ export function ProfileClient({ initial }: { initial: Initial }) {
     <div className="grid lg:grid-cols-[320px_1fr] gap-8">
       <aside className="space-y-4">
         <div className="bg-surface border border-line tm-clip-br p-4 relative">
-          <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-accent to-transparent" />
+          <div className="absolute top-0 left-0 right-0 h-0.5 bg-linear-to-r from-accent to-transparent" />
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={photoUrl}
             alt={displayName}
-            className="w-full aspect-[3/4] object-cover tm-clip-br"
+            className="w-full aspect-3/4 object-cover tm-clip-br"
           />
           <div className="mt-3 space-y-1">
             <div className="tm-mono text-[10px] text-fg-dim">HANDLE</div>
@@ -116,7 +114,7 @@ export function ProfileClient({ initial }: { initial: Initial }) {
         onSubmit={saveDetails}
         className="bg-surface border border-line tm-clip-br p-6 md:p-8 space-y-6 relative"
       >
-        <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-accent to-transparent" />
+        <div className="absolute top-0 left-0 right-0 h-0.5 bg-linear-to-r from-accent to-transparent" />
 
         {message && (
           <div

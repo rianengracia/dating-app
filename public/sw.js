@@ -1,5 +1,6 @@
 /* TrueMatch service worker — handles incoming Web Push notifications. */
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 self.addEventListener("install", (event) => {
   self.skipWaiting();
 });
@@ -13,6 +14,7 @@ self.addEventListener("push", (event) => {
   if (event.data) {
     try {
       payload = Object.assign(payload, event.data.json());
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (_) {
       payload.body = event.data.text();
     }

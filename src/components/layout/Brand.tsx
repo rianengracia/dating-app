@@ -18,7 +18,7 @@ export function Brand({ href = "/", size = "md" }: Props) {
       className={`tm-display ${sizeMap[size]} text-fg hover:text-fg`}
       aria-label="TrueMatch home"
     >
-      TRUE<span className="text-accent">//</span>MATCH
+      TRUE<span className="text-accent">{`//`}</span>MATCH
     </Link>
   );
 }
