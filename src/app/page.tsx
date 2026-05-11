@@ -1,13 +1,16 @@
+import { getCurrentUser } from "@/lib/auth-server";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { Button } from "@/components/ui/Button";
 
-export default function Home() {
+export default async function Home() {
+  const user = await getCurrentUser();
+  const authed = !!user;
   return (
     <>
-      <Header />
+      <Header authed={authed} />
       <main className="flex-1">
-        <Hero />
+        <Hero authed={authed} />
         <About />
         <Stats />
       </main>
@@ -16,7 +19,7 @@ export default function Home() {
   );
 }
 
-function Hero() {
+function Hero({ authed }: { authed: boolean }) {
   return (
     <section className="relative overflow-hidden border-b border-line">
       <div className="absolute inset-0 tm-grid-bg opacity-30 pointer-events-none" />
@@ -42,12 +45,20 @@ function Hero() {
           </p>
 
           <div className="flex flex-col sm:flex-row gap-3">
-            <Button href="/register" variant="primary" size="lg">
-              ENGAGE — CREATE PROFILE
-            </Button>
-            <Button href="/login" variant="secondary" size="lg">
-              SIGN IN
-            </Button>
+            {authed ? (
+              <Button href="/discover" variant="primary" size="lg">
+                ENTER LOBBY
+              </Button>
+            ) : (
+              <>
+                <Button href="/register" variant="primary" size="lg">
+                  ENGAGE — CREATE PROFILE
+                </Button>
+                <Button href="/login" variant="secondary" size="lg">
+                  SIGN IN
+                </Button>
+              </>
+            )}
           </div>
 
           <div className="flex items-center gap-4 pt-4">
@@ -162,7 +173,7 @@ function About() {
               className="bg-surface border border-line tm-clip-br p-6 space-y-4 relative"
             >
               <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-accent to-transparent" />
-              <div className="tm-mono text-[10px] text-accent">// {item.tag}</div>
+              <div className="tm-mono text-[10px] text-accent">{item.tag}</div>
               <h3 className="tm-display text-2xl text-fg">{item.title}</h3>
               <p className="text-sm text-fg-muted leading-relaxed">{item.copy}</p>
             </li>
