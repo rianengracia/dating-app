@@ -1,49 +1,20 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Field, Input, Textarea } from "@/components/ui/Field";
-
-type FieldErrors = Partial<Record<
-  "email" | "password" | "displayName" | "age" | "bio" | "photo" | "form",
-  string
->>;
-
-type ApiResponse =
-  | { ok: true; redirect: string }
-  | { ok: false; errors?: FieldErrors; error?: string };
+import { useRegister } from "@/hooks/useRegister";
 
 export function RegisterForm() {
-  const router = useRouter();
+  const { submit, submitting, errors } = useRegister();
   const formRef = useRef<HTMLFormElement>(null);
-  const [errors, setErrors] = useState<FieldErrors>({});
-  const [submitting, setSubmitting] = useState(false);
   const [photoName, setPhotoName] = useState<string | null>(null);
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!formRef.current) return;
-    setSubmitting(true);
-    setErrors({});
-
-    const fd = new FormData(formRef.current);
-    try {
-      const res = await fetch("/api/auth/register", { method: "POST", body: fd });
-      const data: ApiResponse = await res.json();
-      if (!res.ok || !data.ok) {
-        const fieldErrors: FieldErrors = (!data.ok && data.errors) || {};
-        const formError = !data.ok ? data.error : undefined;
-        setErrors({ ...fieldErrors, ...(formError ? { form: formError } : {}) });
-        setSubmitting(false);
-        return;
-      }
-      router.push(data.redirect);
-    } catch {
-      setErrors({ form: "Network error. Try again." });
-      setSubmitting(false);
-    }
+    await submit(new FormData(formRef.current));
   }
 
   return (

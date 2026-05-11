@@ -1,5 +1,7 @@
 "use client";
 
+import { pushService } from "@/services/pushService";
+
 export type PushPermissionState = "unknown" | "default" | "granted" | "denied" | "unsupported";
 
 export function getPushPermissionState(): PushPermissionState {
@@ -32,10 +34,15 @@ export async function ensurePushSubscription(): Promise<
     return { ok: false, error: "Notification permission was not granted." };
   }
 
-  const keyRes = await fetch("/api/push/vapid-key");
-  const keyData = await keyRes.json();
-  if (!keyRes.ok || !keyData.ok) {
-    return { ok: false, error: keyData.error ?? "Push is not configured." };
+  let publicKey: string;
+  try {
+    const data = await pushService.getPublicKey();
+    publicKey = data.publicKey;
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof Error && err.message ? err.message : "Push is not configured.",
+    };
   }
 
   const reg = await navigator.serviceWorker.register("/sw.js");
@@ -45,15 +52,14 @@ export async function ensurePushSubscription(): Promise<
   if (!subscription) {
     subscription = await reg.pushManager.subscribe({
       userVisibleOnly: true,
-      applicationServerKey: urlBase64ToBuffer(keyData.publicKey),
+      applicationServerKey: urlBase64ToBuffer(publicKey),
     });
   }
 
-  const subRes = await fetch("/api/push/subscribe", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(subscription.toJSON()),
-  });
-  if (!subRes.ok) return { ok: false, error: "Could not register subscription." };
+  try {
+    await pushService.subscribe(subscription.toJSON());
+  } catch {
+    return { ok: false, error: "Could not register subscription." };
+  }
   return { ok: true };
 }
