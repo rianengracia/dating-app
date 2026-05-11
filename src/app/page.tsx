@@ -190,7 +190,7 @@ function Stats() {
       <div className="mx-auto max-w-[1200px] px-6 md:px-12 py-16">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
           {[
-            { k: "ACTIVE AGENTS", v: "12,400" },
+            { k: "ACTIVE AGENTS", v: "13,400" },
             { k: "MATCHES / DAY", v: "3,820" },
             { k: "AVG REPLY TIME", v: "00:04:12" },
             { k: "REGIONS", v: "07" },
