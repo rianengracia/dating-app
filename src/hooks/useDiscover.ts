@@ -35,7 +35,9 @@ export function useDiscover(initial: DiscoverFilters = DEFAULT_FILTERS) {
   }, []);
 
   useEffect(() => {
-    void load(filters);
+    (async () => {
+      await load(filters);
+    })();
   }, [filters, load]);
 
   const removeTop = useCallback(() => {

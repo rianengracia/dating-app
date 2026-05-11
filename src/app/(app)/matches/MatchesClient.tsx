@@ -125,6 +125,7 @@ export function MatchesClient() {
         <div
           role="dialog"
           aria-modal="true"
+          aria-labelledby="unmatch-dialog-title"
           className="fixed inset-0 z-50 bg-bg/95 backdrop-blur-sm flex items-center justify-center p-6"
         >
           <div className="max-w-md w-full bg-surface border border-line tm-clip-br p-8 space-y-5 relative">
@@ -133,10 +134,10 @@ export function MatchesClient() {
               <span className="tm-rule" />
               <span className="tm-mono text-[11px] text-accent">CONFIRM // UNMATCH</span>
             </div>
-            <h2 className="tm-display text-3xl">Unmatch?</h2>
+            <h2 id="unmatch-dialog-title" className="tm-display text-3xl">Unmatch?</h2>
             <p className="text-fg-muted">
               This will remove the match and all messages for both of you. This action
-              can't be undone.
+              can&apos;t be undone.
             </p>
             <div className="flex gap-3 pt-2">
               <Button
