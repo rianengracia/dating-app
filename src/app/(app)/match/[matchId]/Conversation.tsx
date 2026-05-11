@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { io, type Socket } from "socket.io-client";
+import Pusher, { type Channel } from "pusher-js";
 
 type Message = {
   id: string;
@@ -21,29 +21,37 @@ export function Conversation({ matchId, meId, partner, initialMessages }: Props)
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [draft, setDraft] = useState("");
   const [status, setStatus] = useState<"connecting" | "online" | "offline">("connecting");
-  const socketRef = useRef<Socket | null>(null);
+  const [sending, setSending] = useState(false);
+  const [sendError, setSendError] = useState<string | null>(null);
+  const channelRef = useRef<Channel | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const socket = io({ path: "/socket.io", transports: ["websocket", "polling"] });
-    socketRef.current = socket;
+    const key = process.env.NEXT_PUBLIC_PUSHER_KEY;
+    const cluster = process.env.NEXT_PUBLIC_PUSHER_CLUSTER;
+    if (!key || !cluster) {
+      setStatus("offline");
+      return;
+    }
 
-    socket.on("connect", () => {
-      setStatus("online");
-      socket.emit("match:join", matchId, (resp: { ok: boolean; error?: string }) => {
-        if (!resp?.ok) setStatus("offline");
-      });
+    const pusher = new Pusher(key, {
+      cluster,
+      authEndpoint: "/api/pusher/auth",
     });
-    socket.on("connect_error", () => setStatus("offline"));
-    socket.on("disconnect", () => setStatus("offline"));
-    socket.on("message:new", (msg: Message) => {
+    const channel = pusher.subscribe(`presence-match-${matchId}`);
+    channelRef.current = channel;
+
+    channel.bind("pusher:subscription_succeeded", () => setStatus("online"));
+    channel.bind("pusher:subscription_error", () => setStatus("offline"));
+    pusher.connection.bind("disconnected", () => setStatus("offline"));
+    channel.bind("message:new", (msg: Message) => {
       setMessages((prev) => (prev.some((m) => m.id === msg.id) ? prev : [...prev, msg]));
     });
 
     return () => {
-      socket.emit("match:leave", matchId);
-      socket.disconnect();
-      socketRef.current = null;
+      pusher.unsubscribe(`presence-match-${matchId}`);
+      pusher.disconnect();
+      channelRef.current = null;
     };
   }, [matchId]);
 
@@ -51,21 +59,44 @@ export function Conversation({ matchId, meId, partner, initialMessages }: Props)
     listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: "smooth" });
   }, [messages.length]);
 
-  function send(e: React.FormEvent<HTMLFormElement>) {
+  async function send(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const body = draft.trim();
-    if (!body || !socketRef.current) return;
+    if (!body || sending) return;
     setDraft("");
-    socketRef.current.emit(
-      "message:send",
-      { matchId, body },
-      (resp: { ok: boolean; message?: Message; error?: string }) => {
-        if (!resp?.ok) {
-          // restore draft so the user can retry
-          setDraft(body);
-        }
+    setSending(true);
+    setSendError(null);
+    try {
+      const res = await fetch(`/api/matches/${matchId}/messages`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ body }),
+      });
+      const text = await res.text();
+      let data: { ok?: boolean; error?: string; message?: Message } = {};
+      try {
+        data = JSON.parse(text);
+      } catch {
+        setDraft(body);
+        setSendError(`HTTP ${res.status} — route not found or server error. Restart dev server.`);
+        return;
       }
-    );
+      if (!res.ok || !data.ok) {
+        setDraft(body);
+        setSendError(`HTTP ${res.status}: ${data.error ?? "unknown"}`);
+        return;
+      }
+      if (data.message) {
+        setMessages((prev) =>
+          prev.some((m) => m.id === data.message!.id) ? prev : [...prev, data.message!]
+        );
+      }
+    } catch (err) {
+      setDraft(body);
+      setSendError(`Network error: ${err instanceof Error ? err.message : "unknown"}`);
+    } finally {
+      setSending(false);
+    }
   }
 
   return (
@@ -115,6 +146,12 @@ export function Conversation({ matchId, meId, partner, initialMessages }: Props)
         })}
       </div>
 
+      {sendError && (
+        <div className="border-t border-accent bg-accent/10 px-4 py-2 tm-mono text-[11px] text-accent">
+          ▸ {sendError}
+        </div>
+      )}
+
       <form
         onSubmit={send}
         className="border-t border-line p-3 flex items-center gap-2"
@@ -129,7 +166,7 @@ export function Conversation({ matchId, meId, partner, initialMessages }: Props)
         />
         <button
           type="submit"
-          disabled={!draft.trim() || status !== "online"}
+          disabled={!draft.trim() || sending || status !== "online"}
           className="bg-accent text-[#0F1923] tm-mono text-xs px-5 h-11 tm-clip-tl hover:bg-accent-hover disabled:opacity-40 disabled:pointer-events-none"
         >
           SEND ▸
