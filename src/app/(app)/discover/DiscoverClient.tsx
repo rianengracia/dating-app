@@ -41,7 +41,7 @@ export function DiscoverClient() {
   }, [top?.id, lastMatch, pending]);
 
   return (
-    <div className="mx-auto max-w-[1100px] px-6 md:px-12 py-10 md:py-14 grid lg:grid-cols-[280px_1fr] gap-8">
+    <div className="mx-auto max-w-275 px-6 md:px-12 py-10 md:py-14 grid lg:grid-cols-[280px_1fr] gap-8">
       <FilterBar filters={filters} onChange={setFilters} />
 
       <section className="space-y-6">
@@ -99,7 +99,7 @@ function FilterBar({
 }) {
   return (
     <aside className="bg-surface border border-line tm-clip-br p-5 space-y-5 h-fit relative">
-      <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-accent to-transparent" />
+      <div className="absolute top-0 left-0 right-0 h-0.5 bg-linear-to-r from-accent to-transparent" />
       <div>
         <div className="tm-mono text-[10px] text-fg-dim mb-1">FILTERS</div>
         <div className="tm-display text-xl">Loadout</div>
@@ -150,7 +150,7 @@ function FilterBar({
           value={filters.maxKm ?? 500}
           aria-label="Maximum distance"
           onChange={(e) => onChange({ ...filters, maxKm: Number(e.currentTarget.value) })}
-          className="w-full accent-[var(--tm-accent)]"
+          className="w-full accent-(--tm-accent)"
         />
         <div className="flex gap-2">
           <button
@@ -228,15 +228,15 @@ function SwipeCard({
         style={{ transform: `translateX(${drag}px) rotate(${rot}deg)` }}
         className={`bg-surface border border-line tm-clip-br relative cursor-grab active:cursor-grabbing transition-transform ${tint}`}
       >
-        <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-accent to-transparent z-10" />
+        <div className="absolute top-0 left-0 right-0 h-0.5 bg-linear-to-r from-accent to-transparent z-10" />
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={candidate.photoUrl}
           alt={candidate.displayName}
           draggable={false}
-          className="w-full aspect-[4/5] object-cover tm-clip-br pointer-events-none select-none"
+          className="w-full aspect-4/5 object-cover tm-clip-br pointer-events-none select-none"
         />
-        <div className="absolute inset-x-0 bottom-0 p-6 bg-gradient-to-t from-[#0F1923] via-[#0F1923]/80 to-transparent space-y-3">
+        <div className="absolute inset-x-0 bottom-0 p-6 bg-linear-to-t from-[#0F1923] via-[#0F1923]/80 to-transparent space-y-3">
           <div className="flex items-baseline gap-3">
             <h2 className="tm-display text-3xl text-fg">{candidate.displayName.toUpperCase()}</h2>
             <span className="tm-mono text-sm text-fg-muted">{candidate.age}</span>
@@ -298,15 +298,16 @@ function MatchOverlay({
     <div
       role="dialog"
       aria-modal="true"
+      aria-labelledby="match-formed-title"
       className="fixed inset-0 z-50 bg-bg/95 backdrop-blur-sm flex items-center justify-center p-6"
     >
       <div className="max-w-md w-full bg-surface border border-accent tm-clip-br p-8 space-y-6 relative">
-        <div className="absolute top-0 left-0 right-0 h-[3px] bg-accent" />
+        <div className="absolute top-0 left-0 right-0 h-0.75 bg-accent" />
         <div className="flex items-center gap-3">
           <span className="tm-rule" />
           <span className="tm-mono text-[11px] text-accent">SPIKE PLANTED</span>
         </div>
-        <h2 className="tm-display text-5xl text-fg">MATCH FORMED</h2>
+        <h2 id="match-formed-title" className="tm-display text-5xl text-fg">MATCH FORMED</h2>
         <p className="text-fg-muted">
           You and{" "}
           <span className="tm-display text-2xl text-accent align-middle">
