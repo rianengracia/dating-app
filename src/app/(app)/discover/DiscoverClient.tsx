@@ -1,99 +1,44 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
+import { useDiscover } from "@/hooks/useDiscover";
+import { useSwipe } from "@/hooks/useSwipe";
+import type { Candidate, DiscoverFilters } from "@/services/discoverService";
 
-type Candidate = {
-  id: string;
-  displayName: string;
-  age: number;
-  bio: string;
-  photoUrl: string;
-  distanceKm: number | null;
-};
-
-type Filters = {
-  minAge: number;
-  maxAge: number;
-  maxKm: number | null;
-};
-
-type MatchInfo = {
-  matchId: string;
-  partner: { id: string; displayName: string; photoUrl: string };
-};
-
-const DEFAULT_FILTERS: Filters = { minAge: 18, maxAge: 99, maxKm: null };
+const DEFAULT_FILTERS: DiscoverFilters = { minAge: 18, maxAge: 99, maxKm: null };
 
 export function DiscoverClient() {
   const router = useRouter();
-  const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
-  const [candidates, setCandidates] = useState<Candidate[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [match, setMatch] = useState<MatchInfo | null>(null);
-  const [submitting, setSubmitting] = useState(false);
-
-  const load = useCallback(async (f: Filters) => {
-    setLoading(true);
-    setError(null);
-    const params = new URLSearchParams();
-    params.set("minAge", String(f.minAge));
-    params.set("maxAge", String(f.maxAge));
-    if (f.maxKm !== null) params.set("maxKm", String(f.maxKm));
-    try {
-      const res = await fetch(`/api/discover?${params}`);
-      const data = await res.json();
-      if (!res.ok || !data.ok) {
-        setError(data.error ?? "Could not load discover feed.");
-        setCandidates([]);
-      } else {
-        setCandidates(data.candidates as Candidate[]);
-      }
-    } catch {
-      setError("Network error.");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    load(filters);
-  }, [filters, load]);
+  const {
+    candidates,
+    loading,
+    error,
+    filters,
+    setFilters,
+    removeTop,
+  } = useDiscover(DEFAULT_FILTERS);
+  const { pending, lastMatch, like, skip, clearMatch } = useSwipe();
 
   const top = candidates[0];
 
-  async function swipe(action: "LIKE" | "SKIP") {
-    if (!top || submitting) return;
-    setSubmitting(true);
-    try {
-      const res = await fetch("/api/swipe", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ targetId: top.id, action }),
-      });
-      const data = await res.json();
-      setCandidates((prev) => prev.slice(1));
-      if (res.ok && data.ok && data.matched) {
-        setMatch({ matchId: data.matchId, partner: data.partner });
-      }
-    } finally {
-      setSubmitting(false);
-    }
+  async function onSwipe(action: "LIKE" | "SKIP") {
+    if (!top || pending) return;
+    const result = action === "LIKE" ? await like(top.id) : await skip(top.id);
+    if (result) removeTop();
   }
 
-  // Keyboard support
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      if (match) return;
-      if (e.key === "ArrowRight") swipe("LIKE");
-      if (e.key === "ArrowLeft") swipe("SKIP");
+      if (lastMatch) return;
+      if (e.key === "ArrowRight") void onSwipe("LIKE");
+      if (e.key === "ArrowLeft") void onSwipe("SKIP");
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [top?.id, match, submitting]);
+  }, [top?.id, lastMatch, pending]);
 
   return (
     <div className="mx-auto max-w-[1100px] px-6 md:px-12 py-10 md:py-14 grid lg:grid-cols-[280px_1fr] gap-8">
@@ -127,18 +72,18 @@ export function DiscoverClient() {
           <SwipeCard
             key={top.id}
             candidate={top}
-            disabled={submitting}
-            onLike={() => swipe("LIKE")}
-            onSkip={() => swipe("SKIP")}
+            disabled={pending}
+            onLike={() => onSwipe("LIKE")}
+            onSkip={() => onSwipe("SKIP")}
           />
         )}
       </section>
 
-      {match && (
+      {lastMatch && (
         <MatchOverlay
-          match={match}
-          onDismiss={() => setMatch(null)}
-          onOpen={() => router.push(`/match/${match.matchId}`)}
+          match={lastMatch}
+          onDismiss={() => clearMatch()}
+          onOpen={() => router.push(`/match/${lastMatch.matchId}`)}
         />
       )}
     </div>
@@ -149,8 +94,8 @@ function FilterBar({
   filters,
   onChange,
 }: {
-  filters: Filters;
-  onChange: (next: Filters) => void;
+  filters: DiscoverFilters;
+  onChange: (next: DiscoverFilters) => void;
 }) {
   return (
     <aside className="bg-surface border border-line tm-clip-br p-5 space-y-5 h-fit relative">
@@ -173,6 +118,7 @@ function FilterBar({
             min={18}
             max={99}
             value={filters.minAge}
+            aria-label="Minimum age"
             onChange={(e) =>
               onChange({ ...filters, minAge: clamp(Number(e.currentTarget.value), 18, filters.maxAge) })
             }
@@ -183,6 +129,7 @@ function FilterBar({
             min={18}
             max={99}
             value={filters.maxAge}
+            aria-label="Maximum age"
             onChange={(e) =>
               onChange({ ...filters, maxAge: clamp(Number(e.currentTarget.value), filters.minAge, 99) })
             }
@@ -201,6 +148,7 @@ function FilterBar({
           min={1}
           max={500}
           value={filters.maxKm ?? 500}
+          aria-label="Maximum distance"
           onChange={(e) => onChange({ ...filters, maxKm: Number(e.currentTarget.value) })}
           className="w-full accent-[var(--tm-accent)]"
         />
@@ -342,7 +290,7 @@ function MatchOverlay({
   onDismiss,
   onOpen,
 }: {
-  match: MatchInfo;
+  match: { matchId: string; partner: { id: string; displayName: string; photoUrl: string } };
   onDismiss: () => void;
   onOpen: () => void;
 }) {

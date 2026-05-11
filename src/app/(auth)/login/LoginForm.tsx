@@ -1,44 +1,19 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Field, Input } from "@/components/ui/Field";
-
-type ApiResponse =
-  | { ok: true; redirect: string }
-  | { ok: false; error?: string; errors?: Record<string, string> };
+import { useLogin } from "@/hooks/useLogin";
 
 export function LoginForm() {
-  const router = useRouter();
+  const { submit, submitting, error } = useLogin();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setSubmitting(true);
-    setError(null);
-
-    try {
-      const res = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
-      const data: ApiResponse = await res.json();
-      if (!res.ok || !data.ok) {
-        setError((!data.ok && data.error) || "Credentials rejected.");
-        setSubmitting(false);
-        return;
-      }
-      router.push(data.redirect);
-    } catch {
-      setError("Network error. Try again.");
-      setSubmitting(false);
-    }
+    await submit(email, password);
   }
 
   return (

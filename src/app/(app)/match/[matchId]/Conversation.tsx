@@ -1,102 +1,34 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Pusher, { type Channel } from "pusher-js";
-
-type Message = {
-  id: string;
-  senderId: string;
-  body: string;
-  createdAt: string;
-};
+import { useConversation } from "@/hooks/useConversation";
+import type { ChatMessage } from "@/services/messageService";
 
 type Props = {
   matchId: string;
   meId: string;
   partner: { id: string; displayName: string; photoUrl: string };
-  initialMessages: Message[];
+  initialMessages: ChatMessage[];
 };
 
 export function Conversation({ matchId, meId, partner, initialMessages }: Props) {
-  const [messages, setMessages] = useState<Message[]>(initialMessages);
+  const { messages, status, send, sendError } = useConversation(matchId, initialMessages);
   const [draft, setDraft] = useState("");
-  const [status, setStatus] = useState<"connecting" | "online" | "offline">("connecting");
   const [sending, setSending] = useState(false);
-  const [sendError, setSendError] = useState<string | null>(null);
-  const channelRef = useRef<Channel | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const key = process.env.NEXT_PUBLIC_PUSHER_KEY;
-    const cluster = process.env.NEXT_PUBLIC_PUSHER_CLUSTER;
-    if (!key || !cluster) {
-      setStatus("offline");
-      return;
-    }
-
-    const pusher = new Pusher(key, {
-      cluster,
-      authEndpoint: "/api/pusher/auth",
-    });
-    const channel = pusher.subscribe(`presence-match-${matchId}`);
-    channelRef.current = channel;
-
-    channel.bind("pusher:subscription_succeeded", () => setStatus("online"));
-    channel.bind("pusher:subscription_error", () => setStatus("offline"));
-    pusher.connection.bind("disconnected", () => setStatus("offline"));
-    channel.bind("message:new", (msg: Message) => {
-      setMessages((prev) => (prev.some((m) => m.id === msg.id) ? prev : [...prev, msg]));
-    });
-
-    return () => {
-      pusher.unsubscribe(`presence-match-${matchId}`);
-      pusher.disconnect();
-      channelRef.current = null;
-    };
-  }, [matchId]);
 
   useEffect(() => {
     listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: "smooth" });
   }, [messages.length]);
 
-  async function send(e: React.FormEvent<HTMLFormElement>) {
+  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const body = draft.trim();
     if (!body || sending) return;
-    setDraft("");
     setSending(true);
-    setSendError(null);
-    try {
-      const res = await fetch(`/api/matches/${matchId}/messages`, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ body }),
-      });
-      const text = await res.text();
-      let data: { ok?: boolean; error?: string; message?: Message } = {};
-      try {
-        data = JSON.parse(text);
-      } catch {
-        setDraft(body);
-        setSendError(`HTTP ${res.status} — route not found or server error. Restart dev server.`);
-        return;
-      }
-      if (!res.ok || !data.ok) {
-        setDraft(body);
-        setSendError(`HTTP ${res.status}: ${data.error ?? "unknown"}`);
-        return;
-      }
-      if (data.message) {
-        setMessages((prev) =>
-          prev.some((m) => m.id === data.message!.id) ? prev : [...prev, data.message!]
-        );
-      }
-    } catch (err) {
-      setDraft(body);
-      setSendError(`Network error: ${err instanceof Error ? err.message : "unknown"}`);
-    } finally {
-      setSending(false);
-    }
+    const ok = await send(body);
+    setSending(false);
+    if (ok) setDraft("");
   }
 
   return (
@@ -104,7 +36,9 @@ export function Conversation({ matchId, meId, partner, initialMessages }: Props)
       <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-accent to-transparent" />
 
       <div className="flex items-center justify-between px-4 py-2 border-b border-line">
-        <span className="tm-mono text-[10px] text-fg-dim">CONVERSATION // {matchId.slice(0, 8).toUpperCase()}</span>
+        <span className="tm-mono text-[10px] text-fg-dim">
+          CONVERSATION // {matchId.slice(0, 8).toUpperCase()}
+        </span>
         <span
           className={`tm-mono text-[10px] flex items-center gap-1 ${
             status === "online" ? "text-success" : status === "offline" ? "text-accent" : "text-fg-muted"
@@ -131,9 +65,7 @@ export function Conversation({ matchId, meId, partner, initialMessages }: Props)
             <div key={m.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
               <div
                 className={`max-w-[75%] px-4 py-2 tm-clip-br ${
-                  mine
-                    ? "bg-accent text-[#0F1923]"
-                    : "bg-surface-2 border border-line text-fg"
+                  mine ? "bg-accent text-[#0F1923]" : "bg-surface-2 border border-line text-fg"
                 }`}
               >
                 <p className="text-sm whitespace-pre-wrap break-words">{m.body}</p>
@@ -152,10 +84,7 @@ export function Conversation({ matchId, meId, partner, initialMessages }: Props)
         </div>
       )}
 
-      <form
-        onSubmit={send}
-        className="border-t border-line p-3 flex items-center gap-2"
-      >
+      <form onSubmit={onSubmit} className="border-t border-line p-3 flex items-center gap-2">
         <input
           type="text"
           value={draft}
