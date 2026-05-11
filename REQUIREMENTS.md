@@ -19,7 +19,7 @@ A competitive, tactical-themed dating web app. Visual language is inspired by **
 | Image storage | Vercel Blob (public access, `uploads/` prefix) |
 | Tests | Vitest + Testing Library + MSW (`tests/unit`, `tests/integration`) |
 | Lint | ESLint (`eslint-config-next`) |
-| CI/CD | GitLab CI (`.gitlab-ci.yml`) → Vercel deploy on `main` |
+| CI/CD | GitLab CI (`.gitlab-ci.yml`) and GitHub Actions (`.github/workflows/ci.yml`), both deploying to Vercel from `main` |
 | Git hooks | Husky pre-push runs `npm run lint` |
 | Package manager | npm |
 
@@ -228,7 +228,7 @@ Sign-out: `POST /api/auth/logout` clears the cookie.
 - **Performance**: landing page LCP < 2.5 s on a 4G profile; route-level code splitting via App Router defaults.
 - **Quality gates**:
   - Husky pre-push hook runs `npm run lint`; pushes fail on lint errors.
-  - GitLab CI (`.gitlab-ci.yml`) runs lint on every branch/MR, `npm run test:run` on MRs and on `main`, then builds and deploys to Vercel from `main`. Requires the `VERCEL_TOKEN`, `VERCEL_ORG_ID`, and `VERCEL_PROJECT_ID` CI variables.
+  - GitLab CI (`.gitlab-ci.yml`) and GitHub Actions (`.github/workflows/ci.yml`) both run lint on every branch/MR/PR, `npm run test:run` on MRs/PRs and on `main`, then build and deploy to Vercel from `main`. Both pipelines require `VERCEL_TOKEN`, `VERCEL_ORG_ID`, and `VERCEL_PROJECT_ID` as CI variables / repository secrets.
 
 ---
 

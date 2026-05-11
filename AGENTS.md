@@ -54,7 +54,8 @@ This repository is a Next.js dating web app. See `REQUIREMENTS.md` for the autho
 ## Quality gates
 
 - **Husky pre-push hook** (`.husky/pre-push`) runs `npm run lint` before any `git push`. The hook is installed automatically by the `prepare` script on `npm install`.
-- **GitLab CI** (`.gitlab-ci.yml`) runs lint on every branch and MR, runs `npm run test:run` on MRs and on `main`, and builds + deploys to Vercel on `main`. Required CI variables: `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`.
+- **GitLab CI** (`.gitlab-ci.yml`) — current pipeline. Lint on every branch/MR, `npm run test:run` on MRs and on `main`, build + Vercel deploy on `main`.
+- **GitHub Actions** (`.github/workflows/ci.yml`) — mirror of the GitLab pipeline, in place for the upcoming migration to GitHub. Same stages, same Vercel deploy target. Both pipelines need the secrets `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`.
 
 ## Feature scope
 
