@@ -49,6 +49,7 @@ export async function POST(request: Request) {
     if (err instanceof UploadError) {
       return NextResponse.json({ ok: false, errors: { photo: err.message } }, { status: 400 });
     }
+    console.error("[register] photo upload failed:", err);
     return NextResponse.json({ ok: false, error: "Photo upload failed." }, { status: 500 });
   }
 
